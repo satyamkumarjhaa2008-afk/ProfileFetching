@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profile Search</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .search-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+
+    input {
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 25px;
+      border: none;
+      outline: none;
+      width: 250px;
+      transition: 0.3s;
+    }
+
+    input:focus {
+      box-shadow: 0 0 10px #fff;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 25px;
+      background: #ff7e5f;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #feb47b;
+      transform: scale(1.05);
+    }
+
+    .profile-card {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      width: 320px;
+      text-align: center;
+      animation: fadeIn 0.8s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .profile-pic {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 20px;
+      color: #333;
+      font-weight: bold;
+    }
+
+    .profile-details p {
+      margin: 5px 0;
+      font-size: 15px;
+    }
+
+    .highlight {
+      color: #ffd369;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Search User Profile</h1>
+  <div class="search-container">
+    <input type="text" id="userIdInput" placeholder="Enter User ID..." />
+    <button onclick="searchProfile()" id="Search" >Search</button>
+  </div>
+
+  <div class="profile-card" id="profileCard">
+    <div class="profile-pic" id="profilePic">S</div>
+    <div class="profile-details" id="profileDetails"></div>
+  </div>
+
+  <script>
+    const saveBtn = document.getElementById('Search');
+let realProfile;
+saveBtn.addEventListener('click', () => {
+  const userId = document.getElementById('userIdInput').value.trim();
+
+  if (!userId) {
+    alert("Please enter a User ID!");
+    return;
+  }
+
+  // Create FormData and append the ID
+  const formData = new FormData();
+  formData.append("Id", userId); // key 'Id' will be read by server
+
+  // Send the FormData to server using fetch (POST request)
+  fetch('/upload', { // replace '/upload' with your server endpoint
+    method: 'POST',
+    body: formData
+  })
+    .then(response => response.json())
+    .then(data => {
+      console.log("Profile Fetched",data); 
+      realProfile = data
+     
+      // Example: data might be { message: "User ID received", user: {...} }
+    })
+    .catch(error => {
+      console.error("Error getting user Id:", error);
+    });
+});
+
+    // Dummy profile data (as per your object)
+    
+
+    function searchProfile() {
+      const inputId = document.getElementById("userIdInput").value.trim();
+      const card = document.getElementById("profileCard");
+      const details = document.getElementById("profileDetails");
+      const pic = document.getElementById("profilePic");
+
+      // Clear old content
+      details.innerHTML = "";
+      card.style.display = "none";
+
+      // Simulate fetch delay
+      setTimeout(() => {
+        if (realProfile!=null) {
+          pic.textContent = realProfile.firstName.charAt(0);
+          details.innerHTML = `
+            <p><span class="highlight">Full Name:</span> ${realProfile.fullName}</p>
+            <p><span class="highlight">Date of Birth:</span> ${realProfile.dateOfBirth}</p>
+            <p><span class="highlight">Gender:</span> ${realProfile.gender}</p>
+            <p><span class="highlight">Nationality:</span> ${realProfile.nationality}</p>
+          `;
+          card.style.display = "flex";
+        } else {
+          alert("❌ No profile found for this User ID!");
+        }
+      }, 600);
+    }
+  </script>
+</body>
+</html>

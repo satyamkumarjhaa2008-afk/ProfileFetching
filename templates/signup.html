@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profile Form</title>
+  <style>
+    /* 🌈 GENERAL PAGE STYLE */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      animation: fadeInPage 1.5s ease;
+    }
+
+    @keyframes fadeInPage {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .container {
+      background: #ffffffcc;
+      backdrop-filter: blur(15px);
+      padding: 35px;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 480px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      transform: translateY(20px);
+      animation: slideUp 1s ease forwards;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    h2 {
+      text-align: center;
+      color: #004aad;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 18px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      font-size: 15px;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: #0077ff;
+      box-shadow: 0 0 10px #a0d8ff;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 17px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      background: linear-gradient(90deg, #0077ff, #00c6ff);
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px #66ccff;
+    }
+
+    #photoPreview {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #0077ff;
+      display: none;
+      margin: 15px auto;
+      animation: fadeInImg 0.6s ease forwards;
+    }
+
+    @keyframes fadeInImg {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* 🌐 RESPONSIVE */
+    @media (max-width: 600px) {
+      .container { padding: 25px; }
+      h2 { font-size: 22px; }
+    }
+
+    /* 🌀 LOADER OVERLAY */
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s ease;
+    }
+
+    .loader-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #cce5ff;
+      border-top: 6px solid #0077ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #004aad;
+      text-align: center;
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Create User Profile</h2>
+
+    <form id="userForm">
+      <label>User ID</label>
+      <input type="text" id="userId" required placeholder="Enter your User ID">
+
+      <label>First Name</label>
+      <input type="text" id="firstName" required placeholder="Enter first name">
+
+      <label>Middle Name</label>
+      <input type="text" id="middleName" placeholder="Enter middle name">
+
+      <label>Last Name</label>
+      <input type="text" id="lastName" required placeholder="Enter last name">
+
+      <label>Date of Birth</label>
+      <input type="date" id="dateOfBirth" required>
+
+      <label>Gender</label>
+      <select id="gender" required>
+        <option value="" disabled selected>Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+
+      <label>Nationality</label>
+      <input type="text" id="nationality" required placeholder="Enter nationality">
+
+      <label>Upload Photo</label>
+      <input type="file" id="photoInput" accept="image/*">
+      <img id="photoPreview" alt="Photo Preview">
+
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+
+  <!-- 🌀 LOADER -->
+  <div class="loader-overlay" id="loader">
+    <div class="spinner"></div>
+    <div class="loader-text" id="loaderText">Sending profile to server...</div>
+  </div>
+
+  <script>
+    const form = document.getElementById('userForm');
+    const photoInput = document.getElementById('photoInput');
+    const photoPreview = document.getElementById('photoPreview');
+    const loader = document.getElementById('loader');
+    const loaderText = document.getElementById('loaderText');
+    const submitBtn = form.querySelector('button');
+
+    // 🖼️ PREVIEW IMAGE
+    photoInput.addEventListener('change', () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        photoPreview.src = e.target.result;
+        photoPreview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 🧩 FORM SUBMIT HANDLER
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      loader.classList.add('active');
+
+      loaderText.textContent = "📤 Sending profile to server...";
+
+      const first = document.getElementById('firstName').value.trim();
+      const middle = document.getElementById('middleName').value.trim();
+      const last = document.getElementById('lastName').value.trim();
+      const fullName = [first, middle, last].filter(Boolean).join(' ');
+
+      const userData = {
+        userId: document.getElementById('userId').value.trim(),
+        firstName: first,
+        middleName: middle,
+        lastName: last,
+        fullName: fullName,
+        dateOfBirth: document.getElementById('dateOfBirth').value,
+        gender: document.getElementById('gender').value,
+        nationality: document.getElementById('nationality').value,
+      };
+
+      const formData = new FormData();
+      formData.append("userData", JSON.stringify(userData));
+      const file = document.getElementById('photoInput').files[0];
+      if (file) formData.append("image", file);
+
+      try {
+        const response = await fetch("/submitForm", {
+          method: "POST",
+          body: formData
+        });
+
+        loaderText.textContent = "💾 Saving profile to database...";
+
+        await new Promise(r => setTimeout(r, 1000)); // small delay for UX
+
+        if (response.ok) {
+          loaderText.textContent = "✅ Profile saved! Redirecting...";
+          await new Promise(r => setTimeout(r, 800));
+          window.location.href = '/thanku';
+        } else {
+          loaderText.textContent = "❌ Error saving data. Please try again.";
+          submitBtn.disabled = false;
+        }
+
+      } catch (error) {
+        loaderText.textContent = "⚠️ Network error, please try again.";
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thank You</title>
+<style>
+  /* Full-screen black background */
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+  }
+
+  /* Main thank you message */
+  .thankyou {
+    font-size: 3em;
+    text-align: center;
+    animation: fadeInScale 2s ease forwards;
+  }
+
+  /* Small countdown text at the bottom */
+  .countdown {
+    position: absolute;
+    bottom: 50px;
+    font-size: 1.2em;
+    opacity: 0;
+    animation: fadeIn 2s ease forwards 0.5s;
+  }
+
+  /* Keyframes for fading in + scaling text */
+  @keyframes fadeInScale {
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Optional glowing text effect */
+  .thankyou {
+    color: #fff;
+    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 40px #0ff, 0 0 80px #0ff;
+  }
+</style>
+</head>
+<body>
+
+<div class="thankyou">Thank You!<br>You have been registered.</div>
+<div class="countdown">You will be redirected in <span id="timer">3</span> seconds...</div>
+
+<script>
+  // Countdown logic
+  let timeLeft = 5;
+  const timerSpan = document.getElementById('timer');
+
+  const countdown = setInterval(() => {
+    timeLeft--;
+    timerSpan.textContent = timeLeft;
+    if (timeLeft <= 0) {
+      clearInterval(countdown);
+      // Redirect to /signin
+      window.location.href = '/signin';
+    }
+  }, 1000);
+</script>
+
+</body>
+</html>
