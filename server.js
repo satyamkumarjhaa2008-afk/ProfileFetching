@@ -14,8 +14,8 @@ app.use(express.static("public"));
 // ===== MongoDB Atlas Connection =====
 
 // ⚠️ Put these in .env ideally
-const user = process.env.MONGO_USER || "your_username";
-const rawPassword = process.env.MONGO_PASS || "your_password";
+const user = process.env.MONGO_USER || "";
+const rawPassword = process.env.MONGO_PASS || "";
 const encodedPass = encodeURIComponent(rawPassword);
 
 // your DB names
