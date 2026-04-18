@@ -1,136 +1,146 @@
-//Impoting Modules
-
+require('dotenv').config();
 const express = require('express');
-const fs = require("fs")
+const fs = require("fs");
 const multer = require("multer");
 const { MongoClient } = require('mongodb');
-
+const path = require("path");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static("public"));
 
-//defining Variables
-let mollect;
+// ===== MongoDB Atlas Connection =====
+
+// ⚠️ Put these in .env ideally
+const user = process.env.MONGO_USER || "your_username";
+const rawPassword = process.env.MONGO_PASS || "your_password";
+const encodedPass = encodeURIComponent(rawPassword);
+
+// your DB names
+const profileDB = "Profiles";
+const photoDB = "Photos";
+
+// 🔥 Atlas URI
+const MONGO_URI = process.env.MONGO_URI ||
+  `mongodb+srv://${user}:${encodedPass}@cluster0.g0yywja.mongodb.net/?retryWrites=true&w=majority`;
+
+const client = new MongoClient(MONGO_URI);
+
+// collections
 let collect;
+let mollect;
 
-const client = new MongoClient("mongodb://localhost:27017/");
-
-//Server Starting.................
-
+// ===== Start Server =====
 async function startServer() {
   try {
-     console.log("✅ Connected to MongoDB");
     await client.connect();
-   
-//connecting to databases
-    const db = client.db('Profiles');
-    collect = db.collection('People');
+    console.log("✅ Connected to MongoDB Atlas");
 
-    const mb = client.db("Photos");
+    const db = client.db(profileDB);
+    collect = db.collection("People");
+
+    const mb = client.db(photoDB);
     mollect = mb.collection("uploads");
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
+
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err);
   }
 }
 
-// Ensure uploads folder exists (Since we are converting image into Base64 in server side so we have to firstly save it in the backend later we can delete it/ there can be a direct approach too)
+// ===== Multer Setup =====
 const uploadDir = 'ProfilePic/';
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir);
 }
 
-//End points (Get)
-
-app.get('/accounts', (req, res) => {
-  res.sendFile('/templates/account.html', { root: __dirname });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
 });
+
+const upload = multer({ storage });
+
+// ===== Routes =====
+app.get('/accounts', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'account.html'));
+});
+
 app.get('/thanku', (req, res) => {
-  res.sendFile('/templates/thanku.html', { root: __dirname });
+  res.sendFile(path.join(__dirname, 'templates', 'thanku.html'));
 });
 
 app.get('/signin', (req, res) => {
-  res.sendFile('/templates/index.html', { root: __dirname })
-  ;
+  res.sendFile(path.join(__dirname, 'templates', 'index.html'));
 });
 
 app.get('/signup', (req, res) => {
-  res.sendFile('/templates/signup.html', { root: __dirname });
+  res.sendFile(path.join(__dirname, 'templates', 'signup.html'));
 });
-//// Configure Multer
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueName = Date.now() + '-' + file.originalname;
-        cb(null, uniqueName);
-    }
-});
-const upload = multer({ storage: storage });
 
-//End Points (Posts,Runs when a person searches its profile)
+// ===== Get Profile =====
 app.post("/getProfile", upload.none(), async (req, res) => {
   const userId = req.body.Id;
-  console.log("📨 User ID received:");
 
-   try {
+  try {
+    const mrof = await mollect.findOne({ userId });
+    const prof = await collect.findOne({ userId });
 
-    let mrof = await mollect.findOne({userId: userId})
+    if (prof) prof.picture = mrof;
 
-    const prof = await collect.findOne({ userId: userId });
-    prof.picture = mrof
-    console.log("🔍 Query result:", prof);
     res.json(prof || {});
   } catch (err) {
     console.error("❌ Error fetching profile:", err);
     res.status(500).json({ error: "Database query failed" });
   }
-  
-
- 
 });
 
-//Post(for submitting form)
-
+// ===== Submit Form =====
 app.post("/submitForm", upload.single('image'), async (req, res) => {
+  try {
+    const userData = JSON.parse(req.body.userData);
 
+    const fileData = fs.readFileSync(req.file.path);
 
-  console.log(req.file);   // file info (buffer, mimetype,image etc.)
+    const document = {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+      userId: userData.userId,
+      size: req.file.size,
+      data: fileData
+    };
 
-  // 🔹 Access text fields
-  const userData = JSON.parse(req.body.userData);
-  console.log(userData);
+    await mollect.updateOne(
+      { userId: userData.userId },
+      { $set: document },
+      { upsert: true }
+    );
 
-const fileData = fs.readFileSync(req.file.path);
-        // Prepare document for MongoDB
-        const document = {
-            filename: req.file.originalname,
-            contentType: req.file.mimetype,
-            userId :userData.userId,
-            size: req.file.size,
-            data: fileData
-        };
-await mollect.updateOne({ userId: userData.userId }, { $set: document }, { upsert: true });
-await collect.updateOne({ userId: userData.userId }, { $set: userData }, { upsert: true });
+    await collect.updateOne(
+      { userId: userData.userId },
+      { $set: userData },
+      { upsert: true }
+    );
 
- res.json({ message: 'Data received successfully' });
- //deleting the photo once uploaded in database
- fs.unlink(req.file.path, (err) => {
-    if (err) console.error("⚠️ Failed to delete temp file:", err);
+    res.json({ message: 'Data received successfully' });
+
+    fs.unlink(req.file.path, err => {
+      if (err) console.error("⚠️ Failed to delete temp file:", err);
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Upload failed" });
+  }
 });
 
- 
-});
-
-
- 
-
-  
+// ===== Start =====
 startServer();
